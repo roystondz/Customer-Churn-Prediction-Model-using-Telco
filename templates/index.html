@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Churn Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        main {
+            padding: 30px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-group select,
+        .form-group input {
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .button-group {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 0 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .result-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .prediction-result {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .churn-yes {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ef5350;
+        }
+
+        .churn-no {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 2px solid #66bb6a;
+        }
+
+        .probability-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+            transition: width 0.5s ease-out;
+        }
+
+        .risk-indicator {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .risk-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .risk-medium {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .risk-low {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #f44336;
+        }
+
+        .sample-data {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .sample-data h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔮 Customer Churn Prediction</h1>
+            <p>Predict customer churn using machine learning</p>
+        </header>
+
+        <main>
+            <div class="sample-data">
+                <h4>📊 Quick Start</h4>
+                <p>Fill in the customer information below or click "Load Sample Data" to see an example prediction.</p>
+            </div>
+
+            <form id="predictionForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="SeniorCitizen">Senior Citizen</label>
+                        <select id="SeniorCitizen" name="SeniorCitizen" required>
+                            <option value="">Select</option>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Partner">Partner</label>
+                        <select id="Partner" name="Partner" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Dependents">Dependents</label>
+                        <select id="Dependents" name="Dependents" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tenure">Tenure (months)</label>
+                        <input type="number" id="tenure" name="tenure" min="0" max="72" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="PhoneService">Phone Service</label>
+                        <select id="PhoneService" name="PhoneService" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="MultipleLines">Multiple Lines</label>
+                        <select id="MultipleLines" name="MultipleLines" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="No phone service">No phone service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="InternetService">Internet Service</label>
+                        <select id="InternetService" name="InternetService" required>
+                            <option value="">Select</option>
+                            <option value="DSL">DSL</option>
+                            <option value="Fiber optic">Fiber optic</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="OnlineSecurity">Online Security</label>
+                        <select id="OnlineSecurity" name="OnlineSecurity" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="OnlineBackup">Online Backup</label>
+                        <select id="OnlineBackup" name="OnlineBackup" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="DeviceProtection">Device Protection</label>
+                        <select id="DeviceProtection" name="DeviceProtection" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="TechSupport">Tech Support</label>
+                        <select id="TechSupport" name="TechSupport" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="StreamingTV">Streaming TV</label>
+                        <select id="StreamingTV" name="StreamingTV" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="StreamingMovies">Streaming Movies</label>
+                        <select id="StreamingMovies" name="StreamingMovies" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="No internet service">No internet service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="Contract">Contract</label>
+                        <select id="Contract" name="Contract" required>
+                            <option value="">Select</option>
+                            <option value="Month-to-month">Month-to-month</option>
+                            <option value="One year">One year</option>
+                            <option value="Two year">Two year</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="PaperlessBilling">Paperless Billing</label>
+                        <select id="PaperlessBilling" name="PaperlessBilling" required>
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="PaymentMethod">Payment Method</label>
+                        <select id="PaymentMethod" name="PaymentMethod" required>
+                            <option value="">Select</option>
+                            <option value="Electronic check">Electronic check</option>
+                            <option value="Mailed check">Mailed check</option>
+                            <option value="Bank transfer (automatic)">Bank transfer (automatic)</option>
+                            <option value="Credit card (automatic)">Credit card (automatic)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="MonthlyCharges">Monthly Charges ($)</label>
+                        <input type="number" id="MonthlyCharges" name="MonthlyCharges" min="0" max="200" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="TotalCharges">Total Charges ($)</label>
+                        <input type="number" id="TotalCharges" name="TotalCharges" min="0" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn" onclick="loadSampleData()">Load Sample Data</button>
+                    <button type="submit" class="btn" id="predictBtn">Predict Churn</button>
+                </div>
+            </form>
+
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing customer data...</p>
+            </div>
+
+            <div id="error" class="error" style="display: none;"></div>
+
+            <div id="results" class="results">
+                <div class="result-card">
+                    <h3>🎯 Prediction Result</h3>
+                    <div id="predictionResult" class="prediction-result"></div>
+                </div>
+
+                <div class="result-card">
+                    <h3>📊 Churn Probability</h3>
+                    <div class="probability-bar">
+                        <div id="probabilityFill" class="probability-fill"></div>
+                    </div>
+                    <p><strong>Probability:</strong> <span id="probabilityValue"></span>%</p>
+                    <p><strong>Risk Level:</strong> <span id="riskIndicator" class="risk-indicator"></span></p>
+                </div>
+
+                <div class="result-card">
+                    <h3>📋 Customer Summary</h3>
+                    <div id="customerSummary"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const form = document.getElementById('predictionForm');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+
+        // Sample data for testing
+        const sampleData = {
+            gender: "Female",
+            SeniorCitizen: 0,
+            Partner: "Yes",
+            Dependents: "No",
+            tenure: 1,
+            PhoneService: "No",
+            MultipleLines: "No phone service",
+            InternetService: "DSL",
+            OnlineSecurity: "No",
+            OnlineBackup: "Yes",
+            DeviceProtection: "No",
+            TechSupport: "No",
+            StreamingTV: "No",
+            StreamingMovies: "No",
+            Contract: "Month-to-month",
+            PaperlessBilling: "Yes",
+            PaymentMethod: "Electronic check",
+            MonthlyCharges: 29.85,
+            TotalCharges: 29.85
+        };
+
+        function loadSampleData() {
+            Object.keys(sampleData).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = sampleData[key];
+                }
+            });
+        }
+
+        function showLoading() {
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.classList.remove('show');
+        }
+
+        function hideLoading() {
+            loading.style.display = 'none';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+            results.classList.remove('show');
+        }
+
+        function showResults(data) {
+            const predictionResult = document.getElementById('predictionResult');
+            const probabilityFill = document.getElementById('probabilityFill');
+            const probabilityValue = document.getElementById('probabilityValue');
+            const riskIndicator = document.getElementById('riskIndicator');
+            const customerSummary = document.getElementById('customerSummary');
+
+            // Set prediction result
+            const willChurn = data.prediction === 1;
+            predictionResult.textContent = data.interpretation;
+            predictionResult.className = `prediction-result ${willChurn ? 'churn-yes' : 'churn-no'}`;
+
+            // Set probability
+            const probability = (data.probability * 100).toFixed(1);
+            probabilityFill.style.width = `${probability}%`;
+            probabilityValue.textContent = probability;
+
+            // Set risk indicator
+            riskIndicator.textContent = data.churn_risk;
+            riskIndicator.className = `risk-indicator risk-${data.churn_risk.toLowerCase()}`;
+
+            // Customer summary
+            const customer = data.customer_data;
+            customerSummary.innerHTML = `
+                <p><strong>Customer Profile:</strong></p>
+                <ul>
+                    <li>Gender: ${customer.gender}</li>
+                    <li>Tenure: ${customer.tenure} months</li>
+                    <li>Contract: ${customer.Contract}</li>
+                    <li>Monthly Charges: $${customer.MonthlyCharges}</li>
+                    <li>Internet Service: ${customer.InternetService}</li>
+                </ul>
+            `;
+
+            results.classList.add('show');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Convert numeric fields
+            data.SeniorCitizen = parseInt(data.SeniorCitizen);
+            data.tenure = parseInt(data.tenure);
+            data.MonthlyCharges = parseFloat(data.MonthlyCharges);
+            data.TotalCharges = parseFloat(data.TotalCharges);
+
+            try {
+                const response = await fetch('/api/predict/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    hideLoading();
+                    showResults(result.data);
+                } else {
+                    hideLoading();
+                    showError(result.message || 'Prediction failed');
+                }
+            } catch (err) {
+                hideLoading();
+                showError('Network error: ' + err.message);
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

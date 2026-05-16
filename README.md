@@ -26,6 +26,8 @@ This project focuses on predicting customer churn for a telecommunications compa
 - **Visualization**: Matplotlib, Seaborn
 - **Machine Learning**: Scikit-learn, XGBoost, Imbalanced-learn
 - **Model Persistence**: Pickle
+- **Backend Framework**: Django, Django REST Framework
+- **API**: RESTful API with Django REST Framework
 
 ## 📋 Project Structure
 ```
@@ -34,6 +36,23 @@ customer_churn/
 ├── WA_Fn-UseC_-Telco-Customer-Churn.csv  # Dataset
 ├── customer_churn_model.pkl  # Trained model
 ├── encoders.pkl             # Label encoders
+├── manage.py                # Django management script
+├── churn_project/           # Django project settings
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── churn_api/               # Django app for API
+│   ├── __init__.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── views.py
+│   ├── urls.py
+│   └── admin.py
+├── templates/               # HTML templates
+│   └── index.html
+├── requirements.txt         # Python dependencies
 └── README.md                # This file
 ```
 
@@ -74,12 +93,94 @@ customer_churn/
 - F1-Score (Churn): 58%
 
 ## 🚀 Model Deployment
+
+### Django REST API Setup
+
+This project includes a Django REST API for serving the churn prediction model.
+
+#### Installation
+
+1. **Create a Virtual Environment**
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+2. **Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+3. **Run Django Migrations**
+```bash
+python manage.py migrate
+```
+
+4. **Create Superuser (optional)**
+```bash
+python manage.py createsuperuser
+```
+
+5. **Run the Development Server**
+```bash
+python manage.py runserver
+```
+
+The API will be available at `http://localhost:8000`
+
+#### API Endpoints
+
+- `GET /` - Health check
+- `GET /api/health/` - Health check endpoint
+- `GET /api/features/` - Get available features and options
+- `POST /api/predict/` - Make churn prediction
+
+#### Example API Usage
+
+```bash
+# Health check
+curl http://localhost:8000/api/health/
+
+# Get features
+curl http://localhost:8000/api/features/
+
+# Make prediction
+curl -X POST http://localhost:8000/api/predict/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gender": "Female",
+    "SeniorCitizen": 0,
+    "Partner": "Yes",
+    "Dependents": "No",
+    "tenure": 1,
+    "PhoneService": "No",
+    "MultipleLines": "No phone service",
+    "InternetService": "DSL",
+    "OnlineSecurity": "No",
+    "OnlineBackup": "Yes",
+    "DeviceProtection": "No",
+    "TechSupport": "No",
+    "StreamingTV": "No",
+    "StreamingMovies": "No",
+    "Contract": "Month-to-month",
+    "PaperlessBilling": "Yes",
+    "PaymentMethod": "Electronic check",
+    "MonthlyCharges": 29.85,
+    "TotalCharges": 29.85
+  }'
+```
+
+#### Web Interface
+
+Visit `http://localhost:8000` to access the web interface for making predictions through a user-friendly form.
+
+### Python Prediction System
+
 The trained model is saved as `customer_churn_model.pkl` with:
 - RandomForestClassifier model
 - Feature names for prediction
 - Label encoders saved separately as `encoders.pkl`
 
-### Prediction System
 ```python
 # Load model and encoders
 with open("customer_churn_model.pkl", "rb") as file:

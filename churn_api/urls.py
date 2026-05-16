@@ -1,0 +1,9 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.health_check, name='health_check'),
+    path('health/', views.health_check, name='health_check'),
+    path('features/', views.get_features, name='get_features'),
+    path('predict/', views.predict, name='predict'),
+]
